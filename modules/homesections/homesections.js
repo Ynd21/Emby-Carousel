@@ -107,6 +107,11 @@ function watchNow(event) {
 function createCarousel(items) {
     let html = '<div class="carousel" id="latestMoviesCarousel">';
     items.forEach((item, index) => {
+        // Get additional details
+        const starRating = item.CommunityRating ? `⭐ ${item.CommunityRating.toFixed(1)}` : 'N/A';
+        const movieRating = item.OfficialRating ? item.OfficialRating : 'N/A';
+        const genres = item.Genres ? item.Genres.join(', ') : 'N/A';
+
         html += `<div>
                     <div class="carousel-image-container">
                         <img src="/emby/Items/${item.Id}/Images/Backdrop?maxWidth=1200" alt="${item.Name}" class="carousel-image">
@@ -114,6 +119,9 @@ function createCarousel(items) {
                             <h5 class="carousel-logo">
                                 <img src="/emby/Items/${item.Id}/Images/Logo?maxWidth=350" alt="${item.Name}">
                             </h5>
+                            <div class="carousel-details">
+                                ${starRating} || Rated: <span class="mediaInfoItem mediaInfoItem-border">${movieRating}</span> || Genres: <span class="mediaInfoItem mediaInfoItem-border">${genres}</span>
+                            </div>
                             <p class="carousel-tagline">${item.Overview || ''}</p>
                             <a href="/web/index.html#!/item?id=${item.Id}&serverId=${item.ServerId}" class="carousel-button" onclick="watchNow(event)">Watch Now</a>
                         </div>
@@ -185,18 +193,18 @@ function initializeCarousel() {
             carouselElem.className = 'carousel-container';
             elem.insertBefore(carouselElem, elem.firstChild);
 
-            // Fetch Latest Movies and Populate Carousel
-            function fetchLatestMovies(apiClient) {
-                var userId = apiClient.getCurrentUserId();
-                return apiClient.getItems(userId, {
-                    Fields: "PrimaryImageAspectRatio,ProductionYear,Overview",
-                    IncludeItemTypes: "Movie",
-                    Recursive: true,
-                    SortBy: "DateCreated",
-                    SortOrder: "Descending",
-                    Limit: 10
-                });
-            }
+        // Fetch Latest Movies and Populate Carousel
+        function fetchLatestMovies(apiClient) {
+            var userId = apiClient.getCurrentUserId();
+            return apiClient.getItems(userId, {
+                Fields: "PrimaryImageAspectRatio,ProductionYear,Overview,CommunityRating,OfficialRating,MediaSources,Genres,CustomRating",
+                IncludeItemTypes: "Movie",
+                Recursive: true,
+                SortBy: "DateCreated",
+                SortOrder: "Descending",
+                Limit: 10
+            });
+        }
 
             fetchLatestMovies(apiClient).then(function(result) {
                 if (result.Items.length) {
@@ -978,4 +986,3 @@ function initializeCarousel() {
         resume: resume,
     };
 });
-
