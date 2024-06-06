@@ -1,7 +1,7 @@
 
-![Logo](https://i.imgur.com/VhsMN01.jpeg)
+![Logo](https://i.imgur.com/vzKq8hI.jpeg)
 # Fly out Menu Changes
-![Menu](https://i.imgur.com/u7NVX25.jpeg)
+![Menu](https://i.imgur.com/sxmVMLn.jpeg)
 
 
 # 🎥 Emby New Movie Carousel on Home Page 🌟
@@ -141,6 +141,12 @@ Custom CSS you add to Emby via Settings
 }
 .drawer-open {
     box-shadow: none !important;
+}
+.carousel-details {
+    text-align: center;
+}
+.mediaInfoItem-border {
+    vertical-align: baseline !important; 
 }
 ```
     
