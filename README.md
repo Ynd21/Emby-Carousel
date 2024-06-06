@@ -9,13 +9,18 @@ This project enhances the visual appeal and functionality of the Emby web interf
 ## Changes Made
 
 - Added a Custom Carousel
+  
 Integrated a carousel at the top of the home page to showcase the latest movies.
 Configured the carousel to auto-play, change slides every 60 seconds, and include navigation dots.
 Ensured the carousel images have rounded corners and a smooth fade transition into the Emby background.
+
 - Adjusted Header Position
+  
 Positioned the Emby header to overlay the carousel content.
 Made the header background transparent to enhance the visual integration with the carousel.
+
 - Enhanced Readability
+  
 Applied a shadow to the header buttons to ensure readability over the carousel images.
 
 
