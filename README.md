@@ -54,77 +54,20 @@ Restart Emby Docker Container/Server
 Custom CSS you add to Emby via Settings
 
 ```css
-/* Carousel Container Styling */
-.carousel {
-    width: 100%;
-    margin: 0 auto;
-}
-
-.carousel .carousel-image-container {
-    position: relative;
-    text-align: center;
-}
-
-.carousel .carousel-image {
-    width: 100%;
-    max-height: 600px;
-    object-fit: cover;
-    display: block;
-    border-radius: 20px;
-}
-
-.carousel .carousel-caption {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    color: white;
-    text-align: left;
-    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; /* Black stroke */
-}
-
-.carousel .carousel-logo img {
-    max-width: 300px;
-}
-
-.carousel .carousel-tagline {
-    font-size: 1.2em;
-    margin: 10px 0;
-}
-
-.carousel .carousel-button {
-    display: inline-block;
-    background-color: #e50914;
-    color: white;
-    padding: 10px 20px;
-    text-decoration: none;
-    border-radius: 5px;
-    font-size: 1em;
-}
-
-/* Gradient Fade Effect */
-.carousel-image-container::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 100px; /* Adjust as needed */
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0), #1c1c1c);
-    pointer-events: none; /* So it doesn't block clicks */
-    border-bottom-left-radius: 20px; /* To match the border radius of the image */
-    border-bottom-right-radius: 20px; /* To match the border radius of the image */
-}
-
-/* Header Styling */
 .skinHeader {
-    z-index: 1;
+    /* This will ensure it is on top of the main body */
+    z-index: 10; /* Increase the z-index to ensure it's above other elements */
+    display: -webkit-flex;
     display: flex;
-    position: fixed;
+    position: absolute; /* Change to absolute to allow overlapping */
     top: 0;
     left: 0;
     right: 0;
+    inset-inline-start: 0;
+    inset-inline-end: 0;
     box-sizing: border-box;
     height: var(--header-height);
+    -webkit-align-items: flex-start;
     align-items: flex-start;
     contain: strict;
     padding-top: 1.2em;
@@ -132,16 +75,58 @@ Custom CSS you add to Emby via Settings
     padding-left: env(safe-area-inset-left, 0);
     padding-right: 0;
     padding-right: env(safe-area-inset-right, 0);
+    -webkit-align-content: flex-start;
     align-content: flex-start;
+    -webkit-flex-wrap: wrap;
     flex-wrap: wrap;
-    background: transparent !important; /* Make header background transparent */
-    margin-top: -60px; /* Adjust to overlap the carousel */
+    background: transparent; /* Set background to transparent */
 }
 
-/* Header Button Styling */
+.carousel-container {
+    position: relative;
+    margin-top: -5.525em; /* Adjust this value as needed to overlap the header */
+    z-index: 1; /* Ensure it's below the header */
+}
+.sectionTabs {
+    text-align: center;
+    display: none;
+}
+.skinHeader-withBackground.headroom-scrolling {
+    background: transparent !important;
+}
 .paper-icon-button-light {
-    color: white;
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.7); /* Add shadow for readability */
+    color: white; /* Keep the white color */
+    text-shadow: 1px 1px 2px black, 0 0 1em black; /* Add text shadow */
+    padding: 10px;
+    border-radius: 5px;
+    background-color: rgba(0, 0, 0, 0.3); /* Add a semi-transparent background for better readability */
+}
+.headerTop-withSectionTabs .headerLeft, .headerTop-withSectionTabs .headerRight {
+    width: 20%;
+    margin-right: 3%;
+}
+.pageTitleWithDefaultLogo {
+    width: 10.25em !important;
+}
+.pageTitleWithDefaultLogo {
+    background-size: cover;
+}
+.mainDrawer {
+    background: transparent !important;
+}
+.scrollSlider.mainDrawerScrollSlider.scrollSliderY.mainDrawerScrollSlider-autofont {
+	background: hsl(0, 0%,calc(11.76% + 3.5%)) !important;
+	border-radius: 10px;
+}
+.navDrawerHeader.flex.flex-direction-row.align-items-center {
+    display: none;
+}
+.mainDrawer.scrollY {
+    overflow-y: overlay;
+    padding-top: 2.5%;
+}
+.drawer-open {
+    box-shadow: none !important;
 }
 ```
     
