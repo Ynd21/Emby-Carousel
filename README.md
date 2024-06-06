@@ -4,7 +4,7 @@
 ![Menu](https://i.imgur.com/sxmVMLn.jpeg)
 
 
-# 🎥 Emby New Movie Carousel on Home Page 🌟
+# 🎥 Emby New Movie Carousel 🌟
 
 This project enhances the visual appeal and functionality of the Emby web interface by adding a custom carousel to the home page. The carousel dynamically displays the latest movies with a smooth fade transition that blends seamlessly into the Emby background. Additionally, this project ensures that the carousel's header remains transparent and overlays the carousel content effectively.
 
@@ -25,11 +25,8 @@ Made the header background transparent to enhance the visual integration with th
   
 Applied a shadow to the header buttons to ensure readability over the carousel images.
 
-
-## Contributing
-
-Contributions are always welcome! Submit a request! 
-
+## Bugs
+- Expect Bugs. I know on mobile the carousel doesn't load, and at times hitting Home will also fail to load the carousel 
 
 ## How to use
 
