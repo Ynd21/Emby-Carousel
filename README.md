@@ -44,6 +44,18 @@ Mount index.html and homesections.js to the following locations
   /app/emby/system/dashboard-ui/index.html
 ```
 
+## Additional Edits - Add Requests Link to your Fly Out Menu
+
+Edit navdrawercontent.js and goto line 347 - Change this line to your Requests system
+```
+window.open('https://YOUR.LINK.HERE', '_blank', 'noopener noreferrer');
+```
+
+Mount navdrawercontent
+```bash
+/app/emby/system/dashboard-ui/modules/navdrawer/navdrawercontent.js
+```
+
 Restart Emby Docker Container/Server
 
 
