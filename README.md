@@ -24,7 +24,7 @@ Applied a shadow to the header buttons to ensure readability over the carousel i
 Contributions are always welcome! Submit a request! 
 
 
-## Run the bot
+## How to use
 
 Clone the project
 
