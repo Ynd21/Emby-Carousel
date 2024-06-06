@@ -1,6 +1,6 @@
 
 ![Logo](https://i.imgur.com/VhsMN01.jpeg)
-
+![Demo](https://imgur.com/lgU4z6h)
 
 # 🎥 Emby New Movie Carousel on Home Page 🌟
 
