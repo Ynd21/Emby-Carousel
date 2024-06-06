@@ -1,9 +1,7 @@
 
 ![Logo](https://i.imgur.com/VhsMN01.jpeg)
-
-## Demo
-
-![Demo](https://i.imgur.com/jEw5rIq.gif)
+# Fly out Menu Changes
+![Menu](https://i.imgur.com/u7NVX25.jpeg)
 
 
 # 🎥 Emby New Movie Carousel on Home Page 🌟
