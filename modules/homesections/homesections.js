@@ -110,6 +110,23 @@ function createCarousel(items) {
         // Get additional details
         const starRating = item.CommunityRating ? `⭐ ${item.CommunityRating.toFixed(1)}` : 'N/A';
         const movieRating = item.OfficialRating ? item.OfficialRating : 'N/A';
+        const customRating = item.CustomRating ? item.CustomRating : 'N/A';
+        let videoFormat = 'N/A';
+        let audioFormat = 'N/A';
+
+        // Check MediaSources and MediaStreams for video and audio formats
+        if (item.MediaSources && item.MediaSources.length > 0) {
+            item.MediaSources.forEach(source => {
+                source.MediaStreams.forEach(stream => {
+                    if (stream.Type === 'Video') {
+                        videoFormat = stream.DisplayTitle || stream.VideoCodec || 'N/A';
+                    } else if (stream.Type === 'Audio') {
+                        audioFormat = stream.DisplayTitle || stream.AudioCodec || 'N/A';
+                    }
+                });
+            });
+        }
+
         const genres = item.Genres ? item.Genres.join(', ') : 'N/A';
 
         html += `<div>
@@ -120,8 +137,12 @@ function createCarousel(items) {
                                 <img src="/emby/Items/${item.Id}/Images/Logo?maxWidth=350" alt="${item.Name}">
                             </h5>
                             <div class="carousel-details">
-                                ${starRating} || Rated: <span class="mediaInfoItem mediaInfoItem-border">${movieRating}</span> || Genres: <span class="mediaInfoItem mediaInfoItem-border">${genres}</span>
-                            </div>
+                                <span class="media-info">${starRating}</span>
+                                <span class="media-info"><i class="fas fa-film"></i>Rated:<span class="mediaInfoItem-border"> ${movieRating}</span></span>
+                                <span class="media-info"><i class="fas fa-tags"></i> ${genres}</span>
+                                <span class="media-info"><i class="fas fa-video"></i> ${videoFormat}</span>
+                                <span class="media-info"><i class="fas fa-volume-up"></i> ${audioFormat}</span>
+                            </div>         
                             <p class="carousel-tagline">${item.Overview || ''}</p>
                             <a href="/web/index.html#!/item?id=${item.Id}&serverId=${item.ServerId}" class="carousel-button" onclick="watchNow(event)">Watch Now</a>
                         </div>
@@ -986,3 +1007,4 @@ function initializeCarousel() {
         resume: resume,
     };
 });
+
