@@ -1,7 +1,7 @@
 
-![Logo](https://i.imgur.com/MtBIDzc.png)
+![Logo](https://i.imgur.com/ElY4V57.png)
 # Fly out Menu Changes
-![Menu](https://i.imgur.com/Ms5kuTF.png)
+![Menu](https://i.imgur.com/GhCWBWn.png)
 
 
 # 🎥 Emby New Movie Carousel 🌟
