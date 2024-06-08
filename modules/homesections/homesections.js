@@ -131,14 +131,14 @@ function createCarousel(items) {
 
         html += `<div>
                     <div class="carousel-image-container">
-                        <img src="/emby/Items/${item.Id}/Images/Backdrop?maxWidth=1200" alt="${item.Name}" class="carousel-image">
+                        <img src="/emby/Items/${item.Id}/Images/Backdrop?maxWidth=3000" alt="${item.Name}" class="carousel-image">
                         <div class="carousel-caption">
                             <h5 class="carousel-logo">
                                 <img src="/emby/Items/${item.Id}/Images/Logo?maxWidth=350" alt="${item.Name}">
                             </h5>
                             <div class="carousel-details">
                                 <span class="media-info">${starRating}</span>
-                                <span class="media-info"><i class="fas fa-film"></i>Rated:<span class="mediaInfoItem-border"> ${movieRating}</span></span>
+                                <span class="media-info"><span class="mediaInfoItem-border">${movieRating}</span></span>
                                 <span class="media-info"><i class="fas fa-tags"></i> ${genres}</span>
                                 <span class="media-info"><i class="fas fa-video"></i> ${videoFormat}</span>
                                 <span class="media-info"><i class="fas fa-volume-up"></i> ${audioFormat}</span>
@@ -157,21 +157,22 @@ function createCarousel(items) {
 function initializeCarousel() {
     $('#latestMoviesCarousel').slick({
         centerMode: true,
-        centerPadding: '60px',
+        centerPadding: '0px', // No padding to ensure full width
         slidesToShow: 1,
-        dots: true,  // Enable dots
+        dots: true, // Enable dots
         customPaging: function(slider, i) {
-            return '<div class="slick-dot"></div>';  // Custom dot element
+            return '<div class="slick-dot"></div>'; // Custom dot element
         },
-        autoplay: true,  // Enable autoplay
-        autoplaySpeed: 60000,  // Slide every 60 seconds
+        autoplay: true, // Enable autoplay
+        autoplaySpeed: 60000, // Slide every 60 seconds
+        arrows: true, // Enable navigation arrows
         responsive: [
             {
                 breakpoint: 768,
                 settings: {
                     arrows: true,
                     centerMode: true,
-                    centerPadding: '40px',
+                    centerPadding: '0px',
                     slidesToShow: 1
                 }
             },
@@ -180,7 +181,7 @@ function initializeCarousel() {
                 settings: {
                     arrows: true,
                     centerMode: true,
-                    centerPadding: '40px',
+                    centerPadding: '0px',
                     slidesToShow: 1
                 }
             }
