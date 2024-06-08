@@ -1,5 +1,5 @@
 
-![Logo](https://i.imgur.com/ElY4V57.png)
+![Logo](https://i.imgur.com/A6pXNPS.png)
 # Fly out Menu Changes
 ![Menu](https://i.imgur.com/GhCWBWn.png)
 
