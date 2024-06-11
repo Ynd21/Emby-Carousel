@@ -103,12 +103,39 @@ function watchNow(event) {
     window.location.reload(); // Ensures the page refreshes
 }
 
+// Function to get color based on the movie rating
+function getRatingColor(rating) {
+    switch (rating) {
+        case 'G':
+            return 'green';
+        case 'PG':
+            return 'orange';
+        case 'PG-13':
+            return 'purple';
+        case 'R':
+            return 'red';
+        case 'NC-17':
+            return 'blue';
+        default:
+            return 'teal';
+    }
+}
+
+// Function to get a rating string with a rocket emoji for high ratings
+function getStarRatingWithRocket(starRating) {
+    const ratingValue = parseFloat(starRating.split(' ')[1]);
+    if (ratingValue > 7.5) {
+        return `${starRating} 🚀`;
+    }
+    return starRating;
+}
+
 // Function to create carousel HTML
 function createCarousel(items) {
     let html = '<div class="carousel" id="latestMoviesCarousel">';
     items.forEach((item, index) => {
         // Get additional details
-        const starRating = item.CommunityRating ? `⭐ ${item.CommunityRating.toFixed(1)}` : 'N/A';
+        let starRating = item.CommunityRating ? `⭐ ${item.CommunityRating.toFixed(1)}` : 'N/A';
         const movieRating = item.OfficialRating ? item.OfficialRating : 'N/A';
         const customRating = item.CustomRating ? item.CustomRating : 'N/A';
         let videoFormat = 'N/A';
@@ -128,6 +155,10 @@ function createCarousel(items) {
         }
 
         const genres = item.Genres ? item.Genres.join(', ') : 'N/A';
+        const ratingColor = getRatingColor(movieRating); // Get the color based on the rating
+
+        // Modify starRating to include a rocket if it's above 7.5
+        starRating = getStarRatingWithRocket(starRating);
 
         html += `<div>
                     <div class="carousel-image-container">
@@ -138,13 +169,15 @@ function createCarousel(items) {
                             </h5>
                             <div class="carousel-details">
                                 <span class="media-info">${starRating}</span>
-                                <span class="media-info"><span class="mediaInfoItem-border">${movieRating}</span></span>
-                                <span class="media-info"><i class="fas fa-tags"></i> ${genres}</span>
-                                <span class="media-info"><i class="fas fa-video"></i> ${videoFormat}</span>
-                                <span class="media-info"><i class="fas fa-volume-up"></i> ${audioFormat}</span>
+                                <span class="media-info" style="background-color: ${ratingColor}; color: white;"><span class="mediaInfoItem-border">${movieRating}</span></span>
+                                <span class="media-info"><i class="fas fa-tags" style="color: #FFD700;"></i> ${genres}</span> <!-- Gold for tags -->
+                                <span class="media-info"><i class="fas fa-video" style="color: #00BFFF;"></i> ${videoFormat}</span> <!-- DeepSkyBlue for video -->
+                                <span class="media-info"><i class="fas fa-volume-up" style="color: #FF4500;"></i> ${audioFormat}</span> <!-- OrangeRed for audio -->
                             </div>         
                             <p class="carousel-tagline">${item.Overview || ''}</p>
-                            <a href="/web/index.html#!/item?id=${item.Id}&serverId=${item.ServerId}" class="carousel-button" onclick="watchNow(event)">Watch Now</a>
+                            <div class="carousel-buttons">
+                                <a href="#" class="carousel-button more-info-button" onclick="moreInfo(event, '${item.Id}', '${item.ServerId}')">More Info</a>
+                            </div>
                         </div>
                     </div>
                  </div>`;
@@ -1008,4 +1041,3 @@ function initializeCarousel() {
         resume: resume,
     };
 });
-
