@@ -15,6 +15,10 @@ define([
     "./../emby-elements/emby-scroller/emby-scroller.js",
 ], function (_exports, _servicelocator, _layoutmanager, _globalize, _cardbuilder, _usersettings, _connectionmanager, _appsettings, _registrationservices, _approuter, _embyButton, _paperIconButtonLight, _embyItemscontainer, _embyScroller) {
 
+    // Variables to cache Movies and TV Shows data
+    let cachedMovies = null;
+    let cachedTVShows = null;
+
     function resume(elem, options) {
         for (var elems = elem.querySelectorAll(".itemsContainer"), promises = [], i = 0, length = elems.length; i < length; i++) promises.push(elems[i].resume(options));
         elem = Promise.all(promises);
@@ -95,177 +99,330 @@ define([
             useSmallButtons ? index.classList.remove("cardSizeSmaller-mymedia") : index.classList.add("cardSizeSmaller-mymedia");
     }
 
-// Function to handle Watch Now button click
-function watchNow(event) {
-    event.preventDefault();
-    const url = event.target.href;
-    window.location.href = url;
-    window.location.reload(); // Ensures the page refreshes
-}
-
-// Function to get color based on the movie rating
-function getRatingColor(rating) {
-    switch (rating) {
-        case 'G':
-            return 'green';
-        case 'PG':
-            return 'orange';
-        case 'PG-13':
-            return 'purple';
-        case 'R':
-            return 'red';
-        case 'NC-17':
-            return 'blue';
-        default:
-            return 'teal';
+    // Function to handle Watch Now button click
+    function watchNow(event) {
+        event.preventDefault();
+        const url = event.target.href;
+        window.location.href = url;
+        window.location.reload(); // Ensures the page refreshes
     }
-}
 
-// Function to get a rating string with a rocket emoji for high ratings
-function getStarRatingWithRocket(starRating) {
-    const ratingValue = parseFloat(starRating.split(' ')[1]);
-    if (ratingValue > 7.5) {
-        return `${starRating} 🚀`;
+    // Function to get color based on the movie rating
+    function getRatingColor(rating) {
+        switch (rating) {
+            case 'G':
+                return 'green';
+            case 'PG':
+                return 'orange';
+            case 'PG-13':
+                return 'purple';
+            case 'R':
+                return 'red';
+            case 'NC-17':
+                return 'blue';
+            default:
+                return 'teal';
+        }
     }
-    return starRating;
-}
 
-// Function to create carousel HTML
-function createCarousel(items) {
-    let html = '<div class="carousel" id="latestMoviesCarousel">';
-    items.forEach((item, index) => {
-        // Get additional details
-        let starRating = item.CommunityRating ? `⭐ ${item.CommunityRating.toFixed(1)}` : 'N/A';
-        const movieRating = item.OfficialRating ? item.OfficialRating : 'N/A';
-        const customRating = item.CustomRating ? item.CustomRating : 'N/A';
-        let videoFormat = 'N/A';
-        let audioFormat = 'N/A';
+    // Function to get a rating string with a rocket emoji for high ratings
+    function getStarRatingWithRocket(starRating) {
+        const ratingValue = parseFloat(starRating.split(' ')[1]);
+        if (ratingValue > 7.5) {
+            return `${starRating} 🚀`;
+        }
+        return starRating;
+    }
 
-        // Check MediaSources and MediaStreams for video and audio formats
-        if (item.MediaSources && item.MediaSources.length > 0) {
-            item.MediaSources.forEach(source => {
-                source.MediaStreams.forEach(stream => {
-                    if (stream.Type === 'Video') {
-                        videoFormat = stream.DisplayTitle || stream.VideoCodec || 'N/A';
-                    } else if (stream.Type === 'Audio') {
-                        audioFormat = stream.DisplayTitle || stream.AudioCodec || 'N/A';
+    // Function to safely extract runtime from item
+    function getFormattedRuntime(item) {
+        if (!item || !item.RunTimeTicks) return 'N/A';
+        
+        const minutes = Math.floor(item.RunTimeTicks / (10000 * 1000 * 60));
+        if (minutes < 1) return 'N/A';
+        
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = minutes % 60;
+        
+        if (hours > 0) {
+            return `${hours}h ${remainingMinutes > 0 ? remainingMinutes + 'm' : ''}`;
+        }
+        return `${minutes}m`;
+    }
+
+    // Function to safely extract seasons count from item
+    function getSeasonsInfo(item) {
+        if (!item) return 'N/A';
+        return item.ChildCount ? `${item.ChildCount} Season${item.ChildCount !== 1 ? 's' : ''}` : 'N/A';
+    }
+
+    // Function to get TV show status (Running, Ended, etc.)
+    function getSeriesStatus(item) {
+        if (!item || !item.Status) return 'N/A';
+        return item.Status;
+    }
+
+    // Function to get the premiere year
+    function getPremiereYear(item) {
+        if (!item || !item.PremiereDate) return 'N/A';
+        return new Date(item.PremiereDate).getFullYear();
+    }
+
+    // Function to create carousel HTML
+    function createCarousel(items) {
+        let html = '<div class="carousel" id="latestMoviesCarousel">';
+        items.forEach((item, index) => {
+            // Get additional details
+            let starRating = item.CommunityRating ? `⭐ ${item.CommunityRating.toFixed(1)}` : 'N/A';
+            const movieRating = item.OfficialRating ? item.OfficialRating : 'N/A';
+            const customRating = item.CustomRating ? item.CustomRating : 'N/A';
+            const genres = item.Genres ? item.Genres.join(', ') : 'N/A';
+            const ratingColor = getRatingColor(movieRating); // Get the color based on the rating
+            
+            // Modify starRating to include a rocket if it's above 7.5
+            starRating = getStarRatingWithRocket(starRating);
+            
+            // Determine the emoji based on item type
+            const isMovie = item.Type === 'Movie';
+            const switchEmoji = isMovie ? '📺' : '🍿';
+            const switchTo = isMovie ? 'Series' : 'Movie';
+            
+            // TV show specific info or Movie specific info
+            let specializedInfo = '';
+            if (isMovie) {
+                // For movies, show video format, audio format, and runtime
+                let videoFormat = 'N/A';
+                let audioFormat = 'N/A';
+                const runtime = getFormattedRuntime(item);
+                
+                // Check MediaSources and MediaStreams for video and audio formats
+                if (item.MediaSources && item.MediaSources.length > 0) {
+                    item.MediaSources.forEach(source => {
+                        source.MediaStreams.forEach(stream => {
+                            if (stream.Type === 'Video') {
+                                videoFormat = stream.DisplayTitle || stream.VideoCodec || 'N/A';
+                            } else if (stream.Type === 'Audio') {
+                                audioFormat = stream.DisplayTitle || stream.AudioCodec || 'N/A';
+                            }
+                        });
+                    });
+                }
+                
+                specializedInfo = `
+                    <span class="media-info" style="background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-video" style="color: #00BFFF; margin-right: 5px;"></i>${videoFormat}</span>
+                    <span class="media-info" style="background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-volume-up" style="color: #FF4500; margin-right: 5px;"></i>${audioFormat}</span>
+                    <span class="media-info" style="background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-clock" style="color: #32CD32; margin-right: 5px;"></i>${runtime}</span>
+                `;
+            } else {
+                // For TV shows, show seasons count, series status, and premiere year
+                const seasonsInfo = getSeasonsInfo(item);
+                const seriesStatus = getSeriesStatus(item);
+                const premiereYear = getPremiereYear(item);
+                
+                specializedInfo = `
+                    <span class="media-info" style="background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-layer-group" style="color: #FFD700; margin-right: 5px;"></i>${seasonsInfo}</span>
+                    <span class="media-info" style="background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-info-circle" style="color: #1E90FF; margin-right: 5px;"></i>${seriesStatus}</span>
+                    <span class="media-info" style="background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-calendar" style="color: #FF69B4; margin-right: 5px;"></i>${premiereYear}</span>
+                `;
+            }
+
+            html += `<div>
+                        <div class="carousel-image-container" style="position: relative;">
+                            <img src="/emby/Items/${item.Id}/Images/Backdrop?maxWidth=3000" alt="${item.Name}" class="carousel-image">
+                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.4) 75%, rgba(0,0,0,0.2) 100%);"></div>
+                            <div class="carousel-caption" style="background: rgba(0,0,0,0.6); border-radius: 8px; padding: 25px; width: 85%; max-width: 800px; text-align: left; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+                                <h5 class="carousel-logo" style="margin-bottom: 20px; font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
+                                    <img src="/emby/Items/${item.Id}/Images/Logo?maxWidth=500" alt="${item.Name}" style="max-height: 200px; margin-bottom: 15px; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.7));" onerror="this.style.display='none'; this.parentNode.innerHTML = '<span style=\\'font-size: 38px; font-weight: bold; text-shadow: 2px 2px 4px #000;\\'>${item.Name}</span>';">
+                                </h5>
+                                <div class="carousel-details" style="display: flex; flex-wrap: wrap; margin-bottom: 15px; gap: 10px;">
+                                    <span class="media-info" style="background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${starRating}</span>
+                                    <span class="media-info" style="background-color: ${ratingColor}; color: white; padding: 6px 12px; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${movieRating}</span>
+                                    <span class="media-info" style="background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-tags" style="color: #FFD700; margin-right: 5px;"></i>${genres}</span>
+                                    ${specializedInfo}
+                                </div>         
+                                <p class="carousel-tagline" style="margin-bottom: 20px; max-height: 100px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; font-size: 15px; line-height: 1.4; color: rgba(255,255,255,0.95); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">${item.Overview || ''}</p>
+                                <div class="carousel-buttons" style="margin-top: 15px;">
+                                    <a href="#" class="carousel-button more-info-button" onclick="moreInfo(event, '${item.Id}', '${item.ServerId}')" style="background: rgba(255,255,255,0.25); color: white; padding: 10px 20px; border-radius: 4px; text-decoration: none; font-weight: bold; transition: background 0.3s ease; font-size: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">More Info</a>
+                                </div>
+                            </div>
+                            <!-- Emoji switcher positioned in the bottom right corner -->
+                            <div class="carousel-emoji-switch" onclick="switchCarouselContent('${switchTo}')" style="position: absolute; bottom: 20px; right: 20px; background: rgba(0,0,0,0.7); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 22px; color: white; z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.5); transition: transform 0.2s ease, background 0.3s ease; display: flex; align-items: center; justify-content: center;">${switchEmoji}</div>
+                        </div>
+                     </div>`;
+        });
+        html += '</div>';
+        return html;
+    }
+
+    // Function to initialize Slick Carousel
+    function initializeCarousel() {
+        $('#latestMoviesCarousel').slick({
+            centerMode: true,
+            centerPadding: '0px', // No padding to ensure full width
+            slidesToShow: 1,
+            dots: true, // Enable dots
+            customPaging: function(slider, i) {
+                return '<div class="slick-dot" style="width: 12px; height: 12px; background: rgba(255,255,255,0.5); border-radius: 50%; margin: 0 5px;"></div>'; // Custom dot element
+            },
+            autoplay: true, // Enable autoplay
+            autoplaySpeed: 8000, // Slide every 8 seconds (more reasonable)
+            arrows: false, // Disable navigation arrows
+            speed: 500, // Animation speed
+            cssEase: 'cubic-bezier(0.23, 1, 0.32, 1)', // Smooth animation
+            responsive: [
+                {
+                    breakpoint: 768,
+                    settings: {
+                        arrows: false,
+                        centerMode: true,
+                        centerPadding: '0px',
+                        slidesToShow: 1
                     }
-                });
+                },
+                {
+                    breakpoint: 480,
+                    settings: {
+                        arrows: false,
+                        centerMode: true,
+                        centerPadding: '0px',
+                        slidesToShow: 1
+                    }
+                }
+            ]
+        });
+
+        // Add CSS to improve carousel appearance
+        const style = document.createElement('style');
+        style.textContent = `
+            .carousel-container {
+                margin-bottom: 30px;
+                position: relative;
+            }
+            .carousel-image-container {
+                position: relative;
+                overflow: hidden;
+            }
+            .carousel-image {
+                width: 100%;
+                height: auto;
+                max-height: 70vh;
+                object-fit: cover;
+            }
+            .carousel-emoji-switch {
+                text-align: center;
+                line-height: 40px; /* Match height for vertical centering */
+            }
+            .carousel-emoji-switch:hover {
+                transform: scale(1.1);
+                background: rgba(0,0,0,0.9) !important;
+            }
+            .carousel-buttons a:hover {
+                background: rgba(255,255,255,0.4) !important;
+            }
+            .slick-dots {
+                bottom: 15px;
+                z-index: 20;
+            }
+            .slick-active .slick-dot {
+                background: rgba(255,255,255,1) !important;
+            }
+            /* Removed arrow styles */
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Function to switch carousel content between Movies and TV Shows
+    function switchCarouselContent(contentType) {
+        const carouselElem = document.querySelector('.carousel-container');
+        if (!carouselElem) return;
+
+        // Determine which content to load from cache
+        const contentItems = contentType === 'Movie' ? cachedMovies : cachedTVShows;
+        
+        if (contentItems && contentItems.length > 0) {
+            const carouselHtml = createCarousel(contentItems);
+            carouselElem.innerHTML = carouselHtml;
+            initializeCarousel(); // Re-initialize Slick carousel after updating the carousel HTML
+
+            // Add event listeners to switch content emojis
+            document.querySelectorAll('.carousel-emoji-switch').forEach(emoji => {
+                emoji.onclick = () => switchCarouselContent(contentType === 'Movie' ? 'Series' : 'Movie');
             });
         }
+    }
 
-        const genres = item.Genres ? item.Genres.join(', ') : 'N/A';
-        const ratingColor = getRatingColor(movieRating); // Get the color based on the rating
+    // Function to fetch latest Movies
+    function fetchLatestMovies(apiClient) {
+        var userId = apiClient.getCurrentUserId();
+        return apiClient.getItems(userId, {
+            Fields: "PrimaryImageAspectRatio,ProductionYear,Overview,CommunityRating,OfficialRating,MediaSources,Genres,CustomRating",
+            IncludeItemTypes: "Movie",
+            Recursive: true,
+            SortBy: "DateCreated",
+            SortOrder: "Descending",
+            Limit: 10
+        });
+    }
 
-        // Modify starRating to include a rocket if it's above 7.5
-        starRating = getStarRatingWithRocket(starRating);
+    // Function to fetch latest TV Shows
+    function fetchLatestTVShows(apiClient) {
+        var userId = apiClient.getCurrentUserId();
+        return apiClient.getItems(userId, {
+            Fields: "PrimaryImageAspectRatio,ProductionYear,Overview,CommunityRating,OfficialRating,MediaSources,Genres,CustomRating,ChildCount,Status,PremiereDate",
+            IncludeItemTypes: "Series",
+            Recursive: true,
+            SortBy: "DateCreated",
+            SortOrder: "Descending",
+            Limit: 10
+        });
+    }
 
-        html += `<div>
-                    <div class="carousel-image-container">
-                        <img src="/emby/Items/${item.Id}/Images/Backdrop?maxWidth=3000" alt="${item.Name}" class="carousel-image">
-                        <div class="carousel-caption">
-                            <h5 class="carousel-logo">
-                                <img src="/emby/Items/${item.Id}/Images/Logo?maxWidth=350" alt="${item.Name}">
-                            </h5>
-                            <div class="carousel-details">
-                                <span class="media-info">${starRating}</span>
-                                <span class="media-info" style="background-color: ${ratingColor}; color: white;"><span class="mediaInfoItem-border">${movieRating}</span></span>
-                                <span class="media-info"><i class="fas fa-tags" style="color: #FFD700;"></i> ${genres}</span> <!-- Gold for tags -->
-                                <span class="media-info"><i class="fas fa-video" style="color: #00BFFF;"></i> ${videoFormat}</span> <!-- DeepSkyBlue for video -->
-                                <span class="media-info"><i class="fas fa-volume-up" style="color: #FF4500;"></i> ${audioFormat}</span> <!-- OrangeRed for audio -->
-                            </div>         
-                            <p class="carousel-tagline">${item.Overview || ''}</p>
-                            <div class="carousel-buttons">
-                                <a href="#" class="carousel-button more-info-button" onclick="moreInfo(event, '${item.Id}', '${item.ServerId}')">More Info</a>
-                            </div>
-                        </div>
-                    </div>
-                 </div>`;
-    });
-    html += '</div>';
-    return html;
-}
-
-// Function to initialize Slick Carousel
-function initializeCarousel() {
-    $('#latestMoviesCarousel').slick({
-        centerMode: true,
-        centerPadding: '0px', // No padding to ensure full width
-        slidesToShow: 1,
-        dots: true, // Enable dots
-        customPaging: function(slider, i) {
-            return '<div class="slick-dot"></div>'; // Custom dot element
-        },
-        autoplay: true, // Enable autoplay
-        autoplaySpeed: 60000, // Slide every 60 seconds
-        arrows: true, // Enable navigation arrows
-        responsive: [
-            {
-                breakpoint: 768,
-                settings: {
-                    arrows: true,
-                    centerMode: true,
-                    centerPadding: '0px',
-                    slidesToShow: 1
-                }
-            },
-            {
-                breakpoint: 480,
-                settings: {
-                    arrows: true,
-                    centerMode: true,
-                    centerPadding: '0px',
-                    slidesToShow: 1
-                }
-            }
-        ]
-    });
-}
-
-    Object.defineProperty(_exports, "__esModule", { value: !0 }), (_exports.default = void 0);
     _exports.default = {
         loadSections: function (options) {
-            for (
-                var elem = options.element,
-                    apiClient = options.apiClient,
-                    user = options.user,
-                    requestedItemFields = options.requestedItemFields,
-                    enableFocusPreview = options.enableFocusPreview,
-                    requestedImageTypes = options.requestedImageTypes,
-                    sections = _usersettings.default.getHomeScreenSections(),
-                    html = "",
-                    i = 0,
-                    length = sections.length;
-                i < length;
-                i++
-            )
-                (html += '<div class="verticalSection verticalSection-cards hide section' + i + '"></div>'),
-                    0 === i && (html += '<div class="verticalSection verticalSection-cards section-downloads hide"></div><div class="verticalSection verticalSection-cards section-appinfo hide"></div>');
-            (elem.innerHTML = html += '<div class="padded-bottom-page"></div>'), elem.classList.add("homeSectionsContainer");
+            var elem = options.element,
+                apiClient = options.apiClient,
+                user = options.user,
+                requestedItemFields = options.requestedItemFields,
+                enableFocusPreview = options.enableFocusPreview,
+                requestedImageTypes = options.requestedImageTypes,
+                sections = _usersettings.default.getHomeScreenSections(),
+                html = "",
+                i = 0,
+                length = sections.length;
+
+            for (i; i < length; i++) {
+                html += '<div class="verticalSection verticalSection-cards hide section' + i + '"></div>';
+                if (i === 0) {
+                    html += '<div class="verticalSection verticalSection-cards section-downloads hide"></div>';
+                    html += '<div class="verticalSection verticalSection-cards section-appinfo hide"></div>';
+                }
+            }
+            elem.innerHTML = html += '<div class="padded-bottom-page"></div>';
+            elem.classList.add("homeSectionsContainer");
 
             // Insert Carousel Here
             var carouselElem = document.createElement('div');
             carouselElem.className = 'carousel-container';
             elem.insertBefore(carouselElem, elem.firstChild);
 
-        // Fetch Latest Movies and Populate Carousel
-        function fetchLatestMovies(apiClient) {
-            var userId = apiClient.getCurrentUserId();
-            return apiClient.getItems(userId, {
-                Fields: "PrimaryImageAspectRatio,ProductionYear,Overview,CommunityRating,OfficialRating,MediaSources,Genres,CustomRating",
-                IncludeItemTypes: "Movie",
-                Recursive: true,
-                SortBy: "DateCreated",
-                SortOrder: "Descending",
-                Limit: 10
-            });
-        }
+            // Fetch Latest Movies and TV Shows on Initial Load
+            Promise.all([
+                fetchLatestMovies(apiClient),
+                fetchLatestTVShows(apiClient)
+            ]).then(function(results) {
+                cachedMovies = results[0].Items;
+                cachedTVShows = results[1].Items;
 
-            fetchLatestMovies(apiClient).then(function(result) {
-                if (result.Items.length) {
-                    var carouselHtml = createCarousel(result.Items);
+                // Initially load Movies into the carousel
+                if (cachedMovies.length) {
+                    const carouselHtml = createCarousel(cachedMovies);
                     carouselElem.innerHTML = carouselHtml;
                     initializeCarousel(); // Initialize Slick carousel after adding the carousel HTML
+
+                    // Add event listeners to switch content emojis
+                    document.querySelectorAll('.carousel-emoji-switch').forEach(emoji => {
+                        emoji.onclick = () => switchCarouselContent('Series'); // Initially switch to TV Shows
+                    });
                 }
             });
 
@@ -417,7 +574,6 @@ function initializeCarousel() {
                                                             bottomPadding: enableFocusPreview ? "focuspreview" : null,
                                                         },
                                                         virtualScrollLayout: "horizontal-grid",
-                                                        commandOptions: { removeFromResume: !0 },
                                                     }
                                                 );
                                             };
@@ -789,8 +945,7 @@ function initializeCarousel() {
                                                               (html =
                                                                   html +
                                                                   ('<a is="emby-sectiontitle" href="' + _approuter.default.getRouteUrl("livetv", { serverId: apiClient.serverId(), section: "onnow" })) +
-                                                                  '" class="more button-link  button-link-color-inherit sectionTitleTextButton"><h2 class="sectionTitle sectionTitle-cards">') +
-                                                              _globalize.default.translate("HeaderOnNow") +
+                                                                  '" class="more button-link  button-link-color-inherit sectionTitleTextButton"><h2 class="sectionTitle sectionTitle-cards">') + _globalize.default.translate("HeaderOnNow") +
                                                               "</h2></a>"),
                                                     (html =
                                                         html +
@@ -952,9 +1107,9 @@ function initializeCarousel() {
                                                 (html =
                                                     (html += '<div class="sectionTitleContainer sectionTitleContainer-cards">') +
                                                     '<h2 class="sectionTitle sectionTitle-cards padded-left padded-left-page padded-right">Discover Emby Premiere</h2></div>') +
-                                                '<p class="sectionTitle-cards padded-left padded-left-page padded-right">Enjoy Emby DVR, get free access to Emby apps, and more.</p>' +
-                                                getHorizontalScrollerStartTag() +
-                                                '<div is="emby-itemscontainer" data-focusabletype="nearest" class="focusable focuscontainer-x itemsContainer scrollSlider">') + "</div></div>");
+                                                    '<p class="sectionTitle-cards padded-left padded-left-page padded-right">Enjoy Emby DVR, get free access to Emby apps, and more.</p>' +
+                                                    getHorizontalScrollerStartTag() +
+                                                    '<div is="emby-itemscontainer" data-focusabletype="nearest" class="focusable focuscontainer-x itemsContainer scrollSlider">') + "</div></div>");
                                     })()),
                                     (function (elem) {
                                         elem = elem.querySelector(".itemsContainer");
